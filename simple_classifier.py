@@ -61,14 +61,6 @@ for drug in drug_se_dict:
     vector[mono_se_found_indexes] = 1
     drug_features[drug] = vector
 
-# A dictionary that for every node holds its feature vector. (Based on mono se if applicable or else, random)
-# features = {}
-# for node in nodes:
-#    if node in drug_se_dict:
-#        features[node] = drug_features[node]
-    # else:
-    #     features[node] = np.random.randint(2, size=num_features)
-
 # Create the tensor that holds the features for all the nodes
 x_list = [drug_features[drug] for drug in sorted(drug_features.keys())]
 x = np.array(x_list)
@@ -76,11 +68,9 @@ x = np.array(x_list)
 pca = PCA(n_components=500)
 x_pca = pca.fit_transform(x)
 
-# l = train['node1'].to_list()
-# r = train['node2'].to_list()
-
 test['vec1'] = test['node1'].map(drug_features)
 test['vec2'] = test['node2'].map(drug_features)
 test = test.dropna()
 
+# freezing
 df3 = pd.DataFrame(test['vec1'].to_list())
