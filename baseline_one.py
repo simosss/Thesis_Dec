@@ -3,6 +3,7 @@ from collections import defaultdict
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, roc_auc_score
 
 
 def load_combo_se(fname='data/bio-decagon-combo.csv'):
@@ -45,11 +46,31 @@ y = MultiLabelBinarizer().fit_transform(labels)
 x = MultiLabelBinarizer().fit_transform(x)
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
-y_mini = y_train[:, 0:2]
-y_mini_test = y_test[:, 0:2]
+#y_mini = y_train[:, 0:2]
+#y_mini_test = y_test[:, 0:2]
 
-lr = LogisticRegression(random_state=1, max_iter=400)
-multi_target_lr = MultiOutputClassifier(lr, n_jobs=-1)
-multi_target_lr.fit(x_train, y_mini)
-y_pred = multi_target_lr.predict(x_test)
-score = multi_target_lr.score(x_test, y_mini_test[:, 0:2])
+# Plan B: One relation at a time
+#accuracies = list()
+#f1_scores = list()
+auc_scores = list()
+lr = LogisticRegression(random_state=1, max_iter=1000)
+for i in range(y_train.shape[1]):
+    print(i)
+    lr.fit(x_train, y_train[:, i])
+    # acc = lr.score(x_test, y_dense_test[:, i])
+    # y_pred = lr.predict(x_test)
+    y_prob = lr.predict_proba(x_test)
+    # f1 = f1_score(y_dense_test[:, i], y_pred)
+    auc = roc_auc_score(y_test[:, i], y_prob[:, 1])
+    auc_scores.append(auc)
+    # accuracies.append(acc)
+    # f1_scores.append(f1)
+    # print(acc)
+    # print(f1)
+
+# lr = LogisticRegression(random_state=1, max_iter=400)
+# multi_target_lr = MultiOutputClassifier(lr, n_jobs=-1)
+# multi_target_lr.fit(x_train, y_mini)
+# y_pred = multi_target_lr.predict(x_test)
+# score = multi_target_lr.score(x_test, y_mini_test[:, 0:2])
+
