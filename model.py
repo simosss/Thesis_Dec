@@ -34,6 +34,43 @@ class Encoder(nn.Module):
         return x
 
 
+class DistMultDecoder(nn.Module):
+
+    def __init__(self, num_relations=964, input_dim=32, dropout=0.,
+                 activation=torch.sigmoid):
+        super().__init__()
+        self.input_dim = input_dim
+        self.num_relations = num_relations
+        self.dropout = dropout
+        self.activation = activation
+
+        self.local_variation = [
+            torch.flatten(init_glorot(input_dim, 1))
+            for _ in range(num_relations)]
+
+    def forward(self, x, edge_index, edge_type):
+        # We give a mini batch of the edge index along with the edge type of each edge
+        # We seperate the two columns of edge index
+        left, right = edge_index
+        out = torch.empty(0, dtype=torch.double)
+        # for each relation type
+        for i in range(self.num_relations):
+            # we keep the relative part of the edge_index (the edges of this particular type)
+            sub_left = left[torch.where(edge_type == i)]
+            sub_right = right[torch.where(edge_type == i)]
+            # the corresponding x matrices
+            inputs_left = F.dropout(x[sub_left], 0)
+            inputs_right = F.dropout(x[sub_right], 0)
+            # the matrix of the particular relation
+            relation = torch.diag(self.local_variation[i])
+
+            product1 = torch.mm(inputs_left, relation)
+            product2 = (product1 * inputs_right).sum(dim=1)
+            out = torch.cat((out, self.activation(product2)))
+
+        return out
+
+
 class DEDICOMDecoder(nn.Module):
     """DEDICOM Tensor Factorization Decoder model layer for link prediction."""
 
