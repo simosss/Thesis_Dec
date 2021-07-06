@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 combo = pd.read_csv('data/bio-decagon-combo.csv')
 
@@ -13,6 +14,9 @@ combo.columns = ['node1', 'node2', 'relation']
 
 # Kepp only side effects that occur more than 500 times, as done in original paper. Slow
 combo_clean = combo.groupby("relation").filter(lambda x: len(x) > 500)
+# export those se
+a = combo_clean.relation.unique()
+np.savetxt('se.csv', a, delimiter=',', header='poly_side_effects', fmt='%s')
 
 # How many se left
 #len(combo_clean.groupby("relation").count())
