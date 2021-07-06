@@ -2,54 +2,117 @@ import pandas as pd
 import networkx as nx
 from  tqdm import tqdm
 import numpy as np
+from collections import defaultdict
+from sklearn.model_selection import train_test_split
 import os
+
+def load_combo_se(fname='data/bio-decagon-combo.csv'):
+    combo2stitch = {}
+    combo2se = defaultdict(set)
+    se2name = {}
+    drugs = set()
+    fin = open(fname)
+    print( 'Reading: %s' % fname)
+    fin.readline()
+    for line in fin:
+        stitch_id1, stitch_id2, se, se_name = line.strip().split(',')
+        if se not in se_500:
+            continue
+        combo = stitch_id1 + '_' + stitch_id2
+        combo2stitch[combo] = [stitch_id1, stitch_id2]
+        combo2se[combo].add(se)
+        se2name[se] = se_name
+        drugs.update([stitch_id1,stitch_id2])
+    fin.close()
+    n_interactions = sum([len(v) for v in combo2se.values()])
+    print('Drug combinations: %d Side effects: %d' % (len(combo2stitch), len(se2name)))
+    print('Drug-drug interactions: %d' % n_interactions)
+    return combo2stitch, combo2se, se2name, drugs
 
 # path to files with facts
 # current example with tab-separated triples of the KG in the form head-rel-tail
 # path_to_files = "../local_rules/data/WN18RR/"
 # loading the files
-df_train = pd.read_csv("raw/decagon_train.csv")
-df_test = pd.read_csv('raw/decagon_test.csv')
+#df_train = pd.read_csv("raw/decagon_train.csv")
+#df_test = pd.read_csv('raw/decagon_test.csv')
 
-# some stats
-rels = sorted(df_train.relation.unique())
-unique_ents = sorted(list(set(df_train['node1'].unique().tolist() + df_train['node2'].unique().tolist() + df_test['node1'].unique().tolist() + df_test['node2'].unique().tolist())))
-print(f'Unique relations: {len(rels)}')
-print(f'Unique ents: {len(unique_ents)}')
-print(f'# of triples in train: {len(df_train)}')
-print(f'# of triples in test: {len(df_test)}')
+se_500 = pd.read_csv('se.csv')
+se_500 = se_500['# poly_side_effects'].to_list()
 
+combo2stitch, combo2se, se2name, drugs = load_combo_se()
 
-# This will create a dict where for each relation (key) we will have a networkx graph (value)
-network_dict = {}
-for rel in rels:
-    # Keep only triples from this relation
-    print(f'Relation: {rel}')
-    subset = df_train[df_train['relation'] == rel][['node1', 'node2']]
-    # Create tuples of (head, tail) for input to networkx
-    node_pairs = list(zip(subset['node1'].tolist(), subset['node2'].tolist()))
-    # Create networkx graph
-    G = nx.Graph()
-    # Populate it
-    G.add_edges_from(node_pairs)
-    # Add nodes that do not exist already (these will be isolated)
-    for node in unique_ents:
-        if not(G.has_node(node)):
-            G.add_node(node)
-    # Save it
-    network_dict[rel] = G
-    # Print some stats
-    print(f'{nx.info(G)}')
-    print('~'*50)
+labels = list()
+pairs = list()
+for combo in sorted(combo2se.keys()):
+    labels.append(list(combo2se[combo]))
+    pairs.append(list(combo2stitch[combo]))
+
+# lab = list()
+# data = list()
+# for drug1 in drugs:
+#     for drug2 in drugs:
+#         data.append([drug1, drug2])
+#         if [drug1, drug2] in pairs or [drug2, drug1] in pairs:
+#             lab.append(1)
+#         else:
+#             lab.append(0)
+#
+# left = [dat[0] for dat in data]
+# right = [dat[1] for dat in data]
+# del data
+# df = pd.DataFrame({'head': left, 'tail': right, 'label': lab})
+# x = df[['head', 'tail']]
+# y = df[['label']]
+
+left = [pair[0] for pair in pairs]
+right = [pair[1] for pair in pairs]
+lab = [1 for pair in pairs]
+
+df = pd.DataFrame({'head': left, 'tail': right, 'label': lab})
+x = df[['head', 'tail']]
+y = df[['label']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+#node_pairs = list(zip(x_train['head'].tolist(), x_train['tail'].tolist()))
+#test_pairs = list(zip(x_test['head'].tolist(), x_test['tail'].tolist()))
+# Create networkx graph
+#G = nx.Graph()
+# Populate it
+#G.add_edges_from(node_pairs)
+
+train_G = nx.from_pandas_edgelist(x_train, source='head', target='tail', create_using=nx.Graph)
+test_G = nx.from_pandas_edgelist(x_test, source='head', target='tail', create_using=nx.Graph)
+
+# # This will create a dict where for each relation (key) we will have a networkx graph (value)
+# network_dict = {}
+# for rel in rels:
+#     # Keep only triples from this relation
+#     print(f'Relation: {rel}')
+#     subset = df_train[df_train['relation'] == rel][['node1', 'node2']]
+#     # Create tuples of (head, tail) for input to networkx
+#     node_pairs = list(zip(subset['node1'].tolist(), subset['node2'].tolist()))
+#     # Create networkx graph
+#     G = nx.Graph()
+#     # Populate it
+#     G.add_edges_from(node_pairs)
+#     # Add nodes that do not exist already (these will be isolated)
+#     for node in unique_ents:
+#         if not(G.has_node(node)):
+#             G.add_node(node)
+#     # Save it
+#     network_dict[rel] = G
+#     # Print some stats
+#     print(f'{nx.info(G)}')
+#     print('~'*50)
 
 
 
 # Create two networkx graphs with all train/test data (multi-relational)
 
-train_G = nx.from_pandas_edgelist(df_train, source='node1', target='node2', edge_attr='relation',
-                        create_using=nx.MultiGraph)
-test_G = nx.from_pandas_edgelist(df_test, source='node1', target='node2', edge_attr='relation',
-                        create_using=nx.MultiGraph)
+# train_G = nx.from_pandas_edgelist(df_train, source='head', target='tail', edge_attr='label',
+#                         create_using=nx.MultiGraph)
+# test_G = nx.from_pandas_edgelist(df_test, source='head', target='tail', edge_attr='label',
+#                         create_using=nx.MultiGraph)
 
 
 # CREATE TRAIN SAMPLES
@@ -80,21 +143,16 @@ def get_preds(cur_network, head_true, tail_true):
 # This will be the training samples array with size Num_triples X 44. Each triple will have the 44 structural triples.
 X_train = []
 # This will contain the relation of a triple as a class.
-y_train = []
-# Two helper dictionaries that map the relation string to an integer.
-rel2id = dict(zip(rels, [i for i in range(len(rels))]))
-id2rels = dict(zip([i for i in range(len(rels))], rels))
+Y_train = []
 
 # Iterating over all train triples
-for head_true, tail_true, type_dic in tqdm(train_G.edges(data=True)):
+for head_true, tail_true in tqdm(train_G.edges(data=True)):
     # This will hold the 44 features for each triple
-    cur_feat = []
     # For each relation we will use the corresponding single-relational network
-    for i, rel in enumerate(rels):
-        # Append the 4 features generated from each network to the whole feature vector
-        cur_feat.extend(get_preds(network_dict[rel], head_true, tail_true))
-    X_train.append(cur_feat)
-    y_train.append(rel2id[type_dic['relation']])
+    # Append the 4 features generated from each network to the whole feature vector
+    feat = get_preds(train_G, head_true, tail_true)
+    X_train.append(feat)
+    y_train.append(1)
 
 
 from sklearn.linear_model import LogisticRegression
@@ -113,7 +171,7 @@ classifier.fit(np.array(X_train), y_train)
 
 X_test = []
 y_test = []
-for head_true, tail_true, type_dic in tqdm.tqdm_notebook(test_G.edges(data=True)):
+for head_true, tail_true, type_dic in tqdm(test_G.edges(data=True)):
     if not(head_true in train_G and tail_true in train_G):
         continue
     cur_feat = []
