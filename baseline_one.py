@@ -4,6 +4,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, roc_auc_score
+import pandas as pd
 
 
 def load_combo_se(fname='data/bio-decagon-combo.csv'):
@@ -16,6 +17,8 @@ def load_combo_se(fname='data/bio-decagon-combo.csv'):
     fin.readline()
     for line in fin:
         stitch_id1, stitch_id2, se, se_name = line.strip().split(',')
+        if se not in se_500:
+            continue
         combo = stitch_id1 + '_' + stitch_id2
         combo2stitch[combo] = [stitch_id1, stitch_id2]
         combo2se[combo].add(se)
@@ -27,6 +30,9 @@ def load_combo_se(fname='data/bio-decagon-combo.csv'):
     print('Drug-drug interactions: %d' % n_interactions)
     return combo2stitch, combo2se, se2name, drugs
 
+# poly side effects with more than 500 occurences
+se_500 = pd.read_csv('se.csv')
+se_500 = se_500['# poly_side_effects'].to_list()
 
 combo2stitch, combo2se, se2name, drugs = load_combo_se()
 
@@ -51,23 +57,25 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_
 
 # Plan B: One relation at a time
 #accuracies = list()
-#f1_scores = list()
+f1_scores = list()
 auc_scores = list()
 lr = LogisticRegression(random_state=1, max_iter=1000)
 for i in range(y_train.shape[1]):
     print(i)
     lr.fit(x_train, y_train[:, i])
     # acc = lr.score(x_test, y_dense_test[:, i])
-    # y_pred = lr.predict(x_test)
+    y_pred = lr.predict(x_test)
     y_prob = lr.predict_proba(x_test)
-    # f1 = f1_score(y_dense_test[:, i], y_pred)
+    f1 = f1_score(y_test[:, i], y_pred)
     auc = roc_auc_score(y_test[:, i], y_prob[:, 1])
     auc_scores.append(auc)
     # accuracies.append(acc)
-    # f1_scores.append(f1)
+    f1_scores.append(f1)
     # print(acc)
     # print(f1)
 
+
+df = pd.DataFrame({'tr': y_test[:,962], 'prob': y_prob[:, 1], 'pred': y_pred})
 # lr = LogisticRegression(random_state=1, max_iter=400)
 # multi_target_lr = MultiOutputClassifier(lr, n_jobs=-1)
 # multi_target_lr.fit(x_train, y_mini)
