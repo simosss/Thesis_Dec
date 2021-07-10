@@ -1,20 +1,11 @@
 from collections import defaultdict
 from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.multioutput import MultiOutputClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.decomposition import PCA
 from scipy import sparse
 from sklearn.decomposition import TruncatedSVD
-import numpy as np
 import pandas as pd
-from sklearn.metrics import f1_score, roc_auc_score
-import sys
-
-# check the size of the variables
-# local_vars = list(locals().items())
-# for var, obj in local_vars:
-#     print(var, sys.getsizeof(obj))
+from sklearn.metrics import f1_score, roc_auc_score, precision_recall_curve, auc
 
 
 def load_combo_se(fname='data/bio-decagon-combo.csv'):
@@ -23,7 +14,7 @@ def load_combo_se(fname='data/bio-decagon-combo.csv'):
     se2name = {}
     drugs = set()
     fin = open(fname)
-    print( 'Reading: %s' % fname)
+    print('Reading: %s' % fname)
     fin.readline()
     for line in fin:
         stitch_id1, stitch_id2, se, se_name = line.strip().split(',')
@@ -55,17 +46,36 @@ def load_mono_se(fname='data/bio-decagon-mono.csv'):
         se2name[se] = se_name
     return stitch2se, se2name
 
+
+def training(model, x_tr, x_te, yy, yy_test):
+    for i in range(yy.shape[1]):
+        print(i)
+        model.fit(x_tr, yy[:, i])
+        # print("finished training")
+        y_pred = model.predict(x_te)
+        y_prob = model.predict_proba(x_te)
+        # keep probability for the positive class only
+        y_prob = y_prob[:, 1]
+        f1_s = f1_score(yy_test[:, i], y_pred)
+        auroc_s = roc_auc_score(yy_test[:, i], y_prob)
+        precision, recall, thresholds = precision_recall_curve(yy_test[:, i], y_prob)
+        auprc_s = auc(recall, precision)
+        f1_scores.append(f1_s)
+        auroc_scores.append(auroc_s)
+        auprc_scores.append(auprc_s)
+    return f1_scores, auroc_scores, auprc_scores
+
+
+# load data ------------------------------------
 se_500 = pd.read_csv('se.csv')
 se_500 = se_500['# poly_side_effects'].to_list()
-
-
 
 combo2stitch, combo2se, se2name, drugs = load_combo_se()
 stitch2se, se2name_mono = load_mono_se()
 
 mono_se_dict = {i: val for val, i in enumerate(sorted(se2name_mono.keys(), reverse=False))}
 
-# create lists with pairs and se of each pair
+# create lists with pairs and se of each pair ---------------------
 labels = list()
 pairs = list()
 for combo in sorted(combo2se.keys()):
@@ -74,11 +84,10 @@ for combo in sorted(combo2se.keys()):
 
 # one-hot-encode the target
 y = MultiLabelBinarizer().fit_transform(labels)
-y_sparse = sparse.csr_matrix(y)
+# y_sparse = sparse.csr_matrix(y)
 del labels, combo2stitch, combo2se, se2name_mono
 
-# transform the dataset
-
+# transform the dataset ------------------------------------
 x = list()
 for pair in pairs:
     x.append([stitch2se.get(item, item) for item in pair])
@@ -109,55 +118,39 @@ del r
 x = ll + rr
 del ll, rr
 
-np.savetxt('foo.csv', x, delimiter=',', fmt='%1.0f')
-np.savetxt('bar.csv', y, delimiter=',', fmt='%1.0f')
+# export dense dataset. Too big
+# np.savetxt('foo.csv', x, delimiter=',', fmt='%1.0f')
+# np.savetxt('bar.csv', y, delimiter=',', fmt='%1.0f')
 
 x_sparse = sparse.csr_matrix(x)
 
 del x
 
+# PCA ------------------------------------------------
 svd = TruncatedSVD(n_components=300, random_state=42)
-lsa_x_300 = svd.fit_transform(x_sparse)
+lsa_x = svd.fit_transform(x_sparse)
 print(svd.explained_variance_ratio_.sum())
 
-#pca = PCA(n_components=0.99)
-#x_pca = pca.fit_transform(x)
-x_train, x_test, y_train, y_test = train_test_split(lsa_x, y_sparse, test_size=0.2, random_state=42)
-del x, y, lsa_x
-y_mini = y_train[:, :]
-y_mini_test = y_test[:, :]
+# pca = PCA(n_components=0.99)
+# x_pca = pca.fit_transform(x)
 
-# sklearn accepts only array-like as targets, not sparse
-y_dense = y_mini.toarray()
-y_dense_test = y_mini_test.toarray()
+# prepare training ------------------------------------------
+x_train, x_test, y_train, y_test = train_test_split(lsa_x, y, test_size=0.2, random_state=42)
+del lsa_x
+# y_mini = y_train[:, :5]
+# y_mini_test = y_test[:, :5]
 
-
-# Plan A: USe sklearn implementation. Too much time. Only one score accross all se
-lr = LogisticRegression(random_state=1, max_iter=800)
-multi_target_lr = MultiOutputClassifier(lr, n_jobs=-1)
-multi_target_lr.fit(x_train, y_dense)
-# y_pred = multi_target_lr.predict(x_test)
-score = multi_target_lr.score(x_test, y_mini_test[:, 0:10])
-
-
-# Plan B: One relation at a time
-#accuracies = list()
-#f1_scores = list()
-auc_scores = list()
 lr = LogisticRegression(random_state=1, max_iter=1000)
-for i in range(y_dense.shape[1]):
-    print(i)
-    lr.fit(x_train, y_dense[:, i])
-    # acc = lr.score(x_test, y_dense_test[:, i])
-    # y_pred = lr.predict(x_test)
-    y_prob = lr.predict_proba(x_test)
-    # f1 = f1_score(y_dense_test[:, i], y_pred)
-    auc = roc_auc_score(y_dense_test[:, i], y_prob[:, 1])
-    auc_scores.append(auc)
-    # accuracies.append(acc)
-    # f1_scores.append(f1)
-    # print(acc)
-    # print(f1)
+
+# training -----------------------------------------------
+f1_scores = list()
+auroc_scores = list()
+auprc_scores = list()
+f1, auroc, auprc = training(lr, x_train, x_test, y_train, y_test)
 
 # Frequency of the se
-freq = y.sum(axis=0)
+freq = y_test.sum(axis=0) / len(y_test)
+df = pd.DataFrame({'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'freq': freq})
+#df.to_csv('results/baseline_two/try_1.csv')
+
+mean_auprc = sum(auprc) / len(auprc)
