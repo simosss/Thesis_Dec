@@ -82,8 +82,8 @@ x = MultiLabelBinarizer().fit_transform(x)
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
 # chose only some relations for check
-y_mini = y_train[:, 0:10]
-y_mini_test = y_test[:, 0:10]
+#y_mini = y_train[:, 0:10]
+#y_mini_test = y_test[:, 0:10]
 
 # training and evaluate
 f1_scores = list()
@@ -92,10 +92,15 @@ auprc_scores = list()
 lr = LogisticRegression(random_state=1, max_iter=1000)
 # svm = SVC(class_weight='balanced', random_state=1, probability=True, max_iter=100)
 
-f1, auroc, auprc = training(lr, x_train, x_test, y_mini, y_mini_test)
+f1, auroc, auprc = training(lr, x_train, x_test, y_train, y_test)
 
-# manually check probability  versus prediction
-# df = pd.DataFrame({'tr': y_test[:, 9], 'prob': y_prob, 'pred': y_pred})
+
+# Frequency of the se
+freq = y_test.sum(axis=0) / len(y_test)
+mean_auprc = sum(auprc) / len(auprc)
+mean_freq = sum(freq) / len(freq)
+df = pd.DataFrame({'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'freq': freq})
+df.to_csv('results/baseline_one/try_1.csv')
 
 
 
