@@ -150,7 +150,9 @@ f1, auroc, auprc = training(lr, x_train, x_test, y_train, y_test)
 
 # Frequency of the se
 freq = y_test.sum(axis=0) / len(y_test)
-df = pd.DataFrame({'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'freq': freq})
-#df.to_csv('results/baseline_two/try_1.csv')
-
 mean_auprc = sum(auprc) / len(auprc)
+mean_freq = sum(freq) / len(freq)
+df = pd.DataFrame({'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'freq': freq})
+df.to_csv('results/baseline_two/pca500_try_1.csv')
+
+
