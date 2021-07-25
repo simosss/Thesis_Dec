@@ -6,6 +6,12 @@ from scipy import sparse
 from sklearn.decomposition import TruncatedSVD
 import pandas as pd
 from sklearn.metrics import f1_score, roc_auc_score, precision_recall_curve, auc
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.experimental import enable_hist_gradient_boosting
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 
 
 def load_combo_se(fname='data/bio-decagon-combo.csv'):
@@ -64,6 +70,29 @@ def training(model, x_tr, x_te, yy, yy_test):
         auroc_scores.append(auroc_s)
         auprc_scores.append(auprc_s)
     return f1_scores, auroc_scores, auprc_scores
+
+
+def training_with_split(model, X, Y):
+    for i in range(Y.shape[1]):
+        print(i)
+        # split into train and test
+        x_tr, x_te, y_tr, y_te = train_test_split(X, Y, test_size=0.2, random_state=42, stratify=Y[:, i])
+        model.fit(x_tr, y_tr[:, i])
+        print("finished training")
+        y_pred = model.predict(x_te)
+        y_prob = model.predict_proba(x_te)
+        # keep probability for the positive class only
+        y_prob = y_prob[:, 1]
+        f1_s = f1_score(y_te[:, i], y_pred)
+        auroc_s = roc_auc_score(y_te[:, i], y_prob)
+        precision, recall, thresholds = precision_recall_curve(y_te[:, i], y_prob)
+        auprc_s = auc(recall, precision)
+        f1_scores.append(f1_s)
+        auroc_scores.append(auroc_s)
+        auprc_scores.append(auprc_s)
+        frequency = y_te.sum(axis=0) / len(y_te)
+
+    return f1_scores, auroc_scores, auprc_scores, frequency
 
 
 # load data ------------------------------------
@@ -135,24 +164,26 @@ print(svd.explained_variance_ratio_.sum())
 # x_pca = pca.fit_transform(x)
 
 # prepare training ------------------------------------------
-x_train, x_test, y_train, y_test = train_test_split(lsa_x, y, test_size=0.2, random_state=42)
-del lsa_x
+# x_train, x_test, y_train, y_test = train_test_split(lsa_x, y, test_size=0.2, random_state=42)
+# del lsa_x
 # y_mini = y_train[:, :5]
 # y_mini_test = y_test[:, :5]
 
-lr = LogisticRegression(random_state=1, max_iter=1000)
+#lr = LogisticRegression(random_state=1, max_iter=1000)
+#tree = DecisionTreeClassifier()
+boost = HistGradientBoostingClassifier()
 
 # training -----------------------------------------------
 f1_scores = list()
 auroc_scores = list()
 auprc_scores = list()
-f1, auroc, auprc = training(lr, x_train, x_test, y_train, y_test)
-
+#f1, auroc, auprc = training(lr, x_train, x_test, y_train, y_test)
+f1, auroc, auprc, freq = training_with_split(boost, lsa_x, y[:, :10])
 # Frequency of the se
-freq = y_test.sum(axis=0) / len(y_test)
+#freq = y_test.sum(axis=0) / len(y_test)
 mean_auprc = sum(auprc) / len(auprc)
 mean_freq = sum(freq) / len(freq)
 df = pd.DataFrame({'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'freq': freq})
-df.to_csv('results/baseline_two/pca500_try_1.csv')
+df.to_csv('results/baseline_two/pca300_bayes.csv')
 
 
