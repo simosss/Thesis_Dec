@@ -2,6 +2,9 @@ from collections import defaultdict
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, roc_auc_score, precision_recall_curve, auc
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import learning_curve
 
 
 def ap50(prob, y_true):
@@ -71,7 +74,7 @@ def load_mono_se(fname='data/bio-decagon-mono.csv'):
 def load_targets(fname='data/bio-decagon-targets.csv'):
     stitch2proteins = defaultdict(set)
     fin = open(fname)
-    print ('Reading: %s' % fname)
+    print('Reading: %s' % fname)
     fin.readline()
     for line in fin:
         stitch_id, gene = line.strip().split(',')
