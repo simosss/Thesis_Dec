@@ -6,6 +6,29 @@ from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, roc_auc_score, precision_recall_curve, auc
 import pandas as pd
+from sklearn.naive_bayes import GaussianNB
+
+
+def ap50(prob, y_true):
+    prob = prob.to_list()
+    y_true = y_true.to_list()
+    tup = list(zip(prob, y_true))
+    # sorts by the biggest probability first
+    res = sorted(tup, key=lambda x: x[0], reverse=True)
+    res = res[:50]
+    # get only the y_true again
+    label = [x[1] for x in res]
+    true_positives = 0
+    summ = 0
+    for i, lab in enumerate(label):
+        if lab == 1:
+            true_positives += 1
+        a = (true_positives * lab) / (i+1)
+        summ += a
+    # each side effect has more than 50 occurences in test set
+    # so it is safe to divide by 50
+    avg_p = summ / len(label)
+    return avg_p
 
 
 def load_combo_se(fname='data/bio-decagon-combo.csv'):
@@ -102,11 +125,12 @@ y = MultiLabelBinarizer().fit_transform(labels)
 x = MultiLabelBinarizer().fit_transform(x)
 
 # split into train and test
-#x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+# x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
 # chose only some relations for check
-#y_mini = y_train[:, 0:10]
-#y_mini_test = y_test[:, 0:10]
+# y_mini = y_train[:, 0:10]
+# y_mini_test = y_test[:, 0:10]
+y_mini = y[:, 10]
 
 # training and evaluate
 f1_scores = list()
