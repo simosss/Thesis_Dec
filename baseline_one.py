@@ -1,8 +1,5 @@
 from sklearn.preprocessing import MultiLabelBinarizer
-# from sklearn.multioutput import MultiOutputClassifier
 # from sklearn.linear_model import LogisticRegression
-# from sklearn.svm import SVC
-# from sklearn.model_selection import train_test_split
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
 from helpers import load_combo_se, training_with_split
@@ -30,15 +27,10 @@ for pair in pairs:
 y = MultiLabelBinarizer().fit_transform(labels)
 x = MultiLabelBinarizer().fit_transform(x)
 
-y_mini = y[:, 10]
+y_mini = y[:, :10]
 
 # training and evaluate
-f1_scores = list()
-auroc_scores = list()
-auprc_scores = list()
-# lr = LogisticRegression(random_state=1, max_iter=1000)
 bayes = GaussianNB()
-
 f1, auroc, auprc, freq = training_with_split(bayes, x, y_mini)
 
 mean_auprc = sum(auprc) / len(auprc)
