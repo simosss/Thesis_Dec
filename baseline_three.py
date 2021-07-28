@@ -112,13 +112,14 @@ left = [list(x[i][0]) for i in range(len(x))]
 right = [list(x[i][1]) for i in range(len(x))]
 del x
 
+mlb = MultiLabelBinarizer()
 l = list()
 for lef in left:
     l.append([str(mono_se_dict.get(item, item)) for item in lef])
 del left, lef
 l.insert(0, [str(i) for i in range(len(mono_se_dict))])
 # remove first element from the list after the ohe is done correctly
-ll = MultiLabelBinarizer().fit_transform(l)
+ll = mlb.fit_transform(l)
 ll = ll[1:, :10184]
 del l
 
@@ -126,8 +127,8 @@ r = list()
 for rig in right:
     r.append([str(mono_se_dict.get(item, item)) for item in rig])
 del right, rig
-r.insert(0, [str(i) for i in range(len(mono_se_dict))])
-rr = MultiLabelBinarizer().fit_transform(r)
+# r.insert(0, [str(i) for i in range(len(mono_se_dict))])
+rr = mlb.transform(r)
 rr = rr[1:, :10184]
 del r
 
@@ -151,13 +152,14 @@ left_prot = [list(x_prot[i][0]) for i in range(len(x_prot))]
 right_prot = [list(x_prot[i][1]) for i in range(len(x_prot))]
 del x_prot
 
+mlb_prot = MultiLabelBinarizer()
 l_prot = list()
 for lef in left_prot:
     l_prot.append([str(target_dict.get(item, item)) for item in lef])
 del left_prot, lef
 l_prot.insert(0, [str(i) for i in range(len(target_dict))])
 # remove first element from the list after the ohe is done correctly
-ll_prot = MultiLabelBinarizer().fit_transform(l_prot)
+ll_prot = mlb_prot.fit_transform(l_prot)
 ll_prot = ll_prot[1:, :3648]
 del l_prot
 
@@ -165,8 +167,8 @@ r_prot = list()
 for rig in right_prot:
     r_prot.append([str(target_dict.get(item, item)) for item in rig])
 del right_prot, rig
-r_prot.insert(0, [str(i) for i in range(len(target_dict))])
-rr_prot = MultiLabelBinarizer().fit_transform(r_prot)
+# r_prot.insert(0, [str(i) for i in range(len(target_dict))])
+rr_prot = mlb_prot.transform(r_prot)
 rr_prot = rr_prot[1:, :3648]
 del r_prot
 
@@ -177,7 +179,8 @@ del ll_prot, rr_prot
 x_sparse_prot = sparse.csr_matrix(x_prot)
 
 # one-hot-encode the target
-y = MultiLabelBinarizer().fit_transform(labels)
+mlb_y = MultiLabelBinarizer()
+y = mlb_y.fit_transform(labels)
 
 
 # PCA ------------------------------------------------

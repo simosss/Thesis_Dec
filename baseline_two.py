@@ -112,7 +112,8 @@ for combo in sorted(combo2se.keys()):
     pairs.append(list(combo2stitch[combo]))
 
 # one-hot-encode the target
-y = MultiLabelBinarizer().fit_transform(labels)
+mlb_y = MultiLabelBinarizer()
+y = mlb_y.fit_transform(labels)
 # y_sparse = sparse.csr_matrix(y)
 del labels, combo2stitch, combo2se, se2name_mono
 
@@ -125,13 +126,17 @@ left = [list(x[i][0]) for i in range(len(x))]
 right = [list(x[i][1]) for i in range(len(x))]
 del x, pairs, pair
 
+mlb = MultiLabelBinarizer()
+
 l = list()
 for lef in left:
     l.append([str(mono_se_dict.get(item, item)) for item in lef])
 del left, lef
+# to be sure that every one of the 10184 mono se appears at least one
+# so that the ohe is done properly
 l.insert(0, [str(i) for i in range(len(mono_se_dict))])
 # remove first element from the list after the ohe is done correctly
-ll = MultiLabelBinarizer().fit_transform(l)
+ll = mlb.fit_transform(l)
 ll = ll[1:, :10184]
 del l
 
@@ -139,8 +144,8 @@ r = list()
 for rig in right:
     r.append([str(mono_se_dict.get(item, item)) for item in rig])
 del right, rig
-r.insert(0, [str(i) for i in range(len(mono_se_dict))])
-rr = MultiLabelBinarizer().fit_transform(r)
+# r.insert(0, [str(i) for i in range(len(mono_se_dict))])
+rr = mlb.transform(r)
 rr = rr[1:, :10184]
 del r
 
