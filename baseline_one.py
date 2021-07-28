@@ -9,7 +9,7 @@ from helpers import load_combo_se, training_with_split
 combo2stitch, combo2se, se2name, drugs = load_combo_se()
 
 # map each drug to integer
-drugs_dict = {i: val for val, i in enumerate(sorted(drugs, reverse=False))}
+drugs_dict = {val: i for i, val in enumerate(sorted(drugs, reverse=False))}
 
 # create datasets with drug pairs and their respective poly se
 labels = list()

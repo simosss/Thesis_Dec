@@ -87,14 +87,14 @@ combo2stitch, combo2se, se2name, drugs = load_combo_se()
 stitch2se, se2name_mono = load_mono_se()
 stitch2protein = load_targets()
 
-mono_se_dict = {i: val for val, i in enumerate(sorted(se2name_mono.keys(), reverse=False))}
+mono_se_dict = {val: i for i, val in enumerate(sorted(se2name_mono.keys(), reverse=False))}
 targets = list()
 for val in stitch2protein.values():
     targets.extend(val)
 
 targets = list(set(targets))
 targets.sort()
-target_dict = {i: val for val, i in enumerate(sorted(targets, reverse=False))}
+target_dict = {val: i for i, val in enumerate(sorted(targets, reverse=False))}
 
 # create lists with pairs and se of each pair ---------------------
 labels = list()

@@ -102,7 +102,7 @@ se_500 = se_500['# poly_side_effects'].to_list()
 combo2stitch, combo2se, se2name, drugs = load_combo_se()
 stitch2se, se2name_mono = load_mono_se()
 
-mono_se_dict = {i: val for val, i in enumerate(sorted(se2name_mono.keys(), reverse=False))}
+mono_se_dict = {val: i for i, val in enumerate(sorted(se2name_mono.keys(), reverse=False))}
 
 # create lists with pairs and se of each pair ---------------------
 labels = list()
