@@ -69,7 +69,8 @@ rr = mlb.transform(r)
 rr = rr[1:, :10184]
 del r
 
-x = ll + rr
+# x = ll + rr
+x = np.concatenate((ll, rr), axis=1)
 del ll, rr
 
 # export dense dataset. Too big
@@ -111,7 +112,8 @@ rr_prot = mlb_prot.transform(r_prot)
 rr_prot = rr_prot[1:, :len(target_dict)]
 del r_prot
 
-x_prot = ll_prot + rr_prot
+# x_prot = ll_prot + rr_prot
+x_prot = np.concatenate((ll_prot, rr_prot), axis=1)
 del ll_prot, rr_prot
 
 
