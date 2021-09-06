@@ -5,9 +5,9 @@ from sklearn.decomposition import TruncatedSVD
 import pandas as pd
 # from sklearn.naive_bayes import GaussianNB
 # from sklearn.tree import DecisionTreeClassifier
-from sklearn.experimental import enable_hist_gradient_boosting
+# from sklearn.experimental import enable_hist_gradient_boosting
 # from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import HistGradientBoostingClassifier
+# from sklearn.ensemble import HistGradientBoostingClassifier
 from helpers import training_with_split, load_combo_se, load_mono_se
 from scipy.sparse import hstack
 from sklearn.naive_bayes import GaussianNB
@@ -62,10 +62,11 @@ for rig in right:
 del right, rig
 # r.insert(0, [str(i) for i in range(len(mono_se_dict))])
 rr = mlb.transform(r)
-rr = rr[1:, :10184]
+rr = rr[:, :10184]
 del r
 
 x = hstack((ll, rr))
+x = np.concatenate((ll, rr), axis=1)
 del ll, rr
 
 # export dense dataset. Too big
@@ -77,7 +78,7 @@ x_sparse = sparse.csr_matrix(x)
 del x
 
 # PCA ------------------------------------------------
-svd = TruncatedSVD(n_components=100, random_state=42)
+svd = TruncatedSVD(n_components=500, random_state=42)
 lsa_x = svd.fit_transform(x_sparse)
 print(svd.explained_variance_ratio_.sum())
 
