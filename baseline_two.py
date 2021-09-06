@@ -1,16 +1,17 @@
 from sklearn.preprocessing import MultiLabelBinarizer
-# from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression
 from scipy import sparse
 from sklearn.decomposition import TruncatedSVD
 import pandas as pd
 # from sklearn.naive_bayes import GaussianNB
 # from sklearn.tree import DecisionTreeClassifier
-# from sklearn.experimental import enable_hist_gradient_boosting
+from sklearn.experimental import enable_hist_gradient_boosting
 # from sklearn.ensemble import RandomForestClassifier
-# from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from helpers import training_with_split, load_combo_se, load_mono_se
 from scipy.sparse import hstack
 from sklearn.naive_bayes import GaussianNB
+import numpy as np
 
 
 # load data ------------------------------------
@@ -65,7 +66,6 @@ rr = mlb.transform(r)
 rr = rr[:, :10184]
 del r
 
-x = hstack((ll, rr))
 x = np.concatenate((ll, rr), axis=1)
 del ll, rr
 
@@ -91,14 +91,14 @@ print(svd.explained_variance_ratio_.sum())
 # y_mini = y_train[:, :5]
 # y_mini_test = y_test[:, :5]
 
-# lr = LogisticRegression(random_state=1, max_iter=1000)
+lr = LogisticRegression(random_state=1, max_iter=1000)
 # tree = DecisionTreeClassifier()
-# boost = HistGradientBoostingClassifier()
+boost = HistGradientBoostingClassifier()
 bayes = GaussianNB()
 
 # training -----------------------------------------------
 # f1, auroc, auprc = training(lr, x_train, x_test, y_train, y_test)
-f1, auroc, auprc, freq = training_with_split(bayes, lsa_x, y[:, :10])
+f1, auroc, auprc, freq = training_with_split(lr, lsa_x, y[:, :10])
 
 mean_auprc = sum(auprc) / len(auprc)
 mean_freq = sum(freq) / len(freq)
