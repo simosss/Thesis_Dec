@@ -56,6 +56,11 @@ ll = mlb.fit_transform(l)
 # are you sure it is the last three you need to discard?
 ll = ll[1:, :10184]
 del l
+ll_sparse = sparse.csr_matrix(ll)
+del ll
+svd = TruncatedSVD(n_components=300, random_state=42)
+lsa_ll = svd.fit_transform(ll_sparse)
+print(svd.explained_variance_ratio_.sum())
 
 r = list()
 for rig in right:
@@ -65,22 +70,25 @@ del right, rig
 rr = mlb.transform(r)
 rr = rr[:, :10184]
 del r
+rr_sparse = sparse.csr_matrix(rr)
+del rr
+lsa_rr = svd.transform(rr_sparse)
+print(svd.explained_variance_ratio_.sum())
 
-x = np.concatenate((ll, rr), axis=1)
-del ll, rr
+x = np.concatenate((lsa_ll, lsa_rr), axis=1)
 
 # export dense dataset. Too big
 # np.savetxt('foo.csv', x, delimiter=',', fmt='%1.0f')
 # np.savetxt('bar.csv', y, delimiter=',', fmt='%1.0f')
 
-x_sparse = sparse.csr_matrix(x)
+# x_sparse = sparse.csr_matrix(x)
 
-del x
+# del x
 
 # PCA ------------------------------------------------
-svd = TruncatedSVD(n_components=500, random_state=42)
-lsa_x = svd.fit_transform(x_sparse)
-print(svd.explained_variance_ratio_.sum())
+#svd = TruncatedSVD(n_components=500, random_state=42)
+#lsa_x = svd.fit_transform(x_sparse)
+#print(svd.explained_variance_ratio_.sum())
 
 # pca = PCA(n_components=0.99)
 # x_pca = pca.fit_transform(x)
@@ -98,7 +106,7 @@ bayes = GaussianNB()
 
 # training -----------------------------------------------
 # f1, auroc, auprc = training(lr, x_train, x_test, y_train, y_test)
-f1, auroc, auprc, freq = training_with_split(lr, lsa_x, y[:, :10])
+f1, auroc, auprc, freq = training_with_split(lr, x, y[:, :1])
 
 mean_auprc = sum(auprc) / len(auprc)
 mean_freq = sum(freq) / len(freq)
