@@ -8,6 +8,7 @@ from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.naive_bayes import GaussianNB
 from helpers import training_with_split, load_combo_se, load_mono_se, load_targets
+from scipy.sparse import hstack
 
 
 # load data ------------------------------------
@@ -58,28 +59,30 @@ ll = mlb.fit_transform(l)
 # remove first element from the list after the ohe is done correctly
 ll = ll[1:, :10184]
 del l
+ll_sparse = sparse.csr_matrix(ll)
+del ll
 
 # repeat for the second drug
 r = list()
 for rig in right:
     r.append([str(mono_se_dict.get(item, item)) for item in rig])
 del right, rig
-r.insert(0, [str(i) for i in range(len(mono_se_dict))])
+# r.insert(0, [str(i) for i in range(len(mono_se_dict))])
 rr = mlb.transform(r)
-rr = rr[1:, :10184]
+rr = rr[:, :10184]
 del r
+rr_sparse = sparse.csr_matrix(rr)
+del rr
 
-# x = ll + rr
-x = np.concatenate((ll, rr), axis=1)
-del ll, rr
 
-# export dense dataset. Too big
-# np.savetxt('foo.csv', x, delimiter=',', fmt='%1.0f')
-# np.savetxt('bar.csv', y, delimiter=',', fmt='%1.0f')
+# PCA ------------------------------------------------
+svd = TruncatedSVD(n_components=100, random_state=42)
+lsa_ll = svd.fit_transform(ll_sparse)
+lsa_rr = svd.transform(rr_sparse)
+print(svd.explained_variance_ratio_.sum())
 
-x_sparse = sparse.csr_matrix(x)
-
-del x
+lsa_x = np.concatenate((lsa_ll, lsa_rr), axis=1)
+del lsa_ll, lsa_rr
 
 # protein features -----------------------------
 
@@ -102,6 +105,8 @@ l_prot.insert(0, [str(i) for i in range(len(target_dict))])
 ll_prot = mlb_prot.fit_transform(l_prot)
 ll_prot = ll_prot[1:, :len(target_dict)]
 del l_prot
+ll_prot_sparse = sparse.csr_matrix(ll_prot)
+del ll_prot
 
 r_prot = list()
 for rig in right_prot:
@@ -111,24 +116,16 @@ r_prot.insert(0, [str(i) for i in range(len(target_dict))])
 rr_prot = mlb_prot.transform(r_prot)
 rr_prot = rr_prot[1:, :len(target_dict)]
 del r_prot
-
-# x_prot = ll_prot + rr_prot
-x_prot = np.concatenate((ll_prot, rr_prot), axis=1)
-del ll_prot, rr_prot
-
-
-x_sparse_prot = sparse.csr_matrix(x_prot)
-
-# PCA ------------------------------------------------
-svd = TruncatedSVD(n_components=300, random_state=42)
-lsa_x = svd.fit_transform(x_sparse)
-print(svd.explained_variance_ratio_.sum())
+rr_prot_sparse = sparse.csr_matrix(rr_prot)
+del rr_prot
 
 # PCA ------------------------------------------------
 svd_prot = TruncatedSVD(n_components=50, random_state=42)
-lsa_x_prot = svd_prot.fit_transform(x_sparse_prot)
+lsa_ll_prot = svd_prot.fit_transform(ll_prot_sparse)
+lsa_rr_prot = svd_prot.transform(rr_prot_sparse)
 print(svd_prot.explained_variance_ratio_.sum())
 
+lsa_x_prot = np.concatenate((lsa_ll_prot, lsa_rr_prot), axis=1)
 
 x = np.concatenate((lsa_x, lsa_x_prot), axis=1)
 
@@ -143,7 +140,7 @@ boost = HistGradientBoostingClassifier()
 bayes = GaussianNB()
 lr = LogisticRegression(max_iter=1000)
 
-f1, auroc, auprc, freq = training_with_split(lr, x, y[:, :1])
+f1, auroc, auprc, freq = training_with_split(boost, x, y[:, :1])
 
 
 # training -----------------------------------------------
