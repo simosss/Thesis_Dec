@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np
+from collections import defaultdict
+
+
+def remap(df):
+        """Changes values of df based on the mapping"""
+
+        df['node1'] = df['node1'].map(nodes_dict)
+        df['node2'] = df['node2'].map(nodes_dict)
+        df['relation'] = df['relation'].map(rel_dict)
+        return df
+
+
+# read  datasets
+train = pd.read_csv('raw/sample.csv')
+val = pd.read_csv('raw/val_sample.csv')
+test = pd.read_csv('raw/test_sample.csv')
+mono = pd.read_csv('raw/bio-decagon-mono.csv')
+
+all = pd.concat([train, val, test])
+
+# Create dictionaries that map every node and every relation to an integer respectively
+n1 = set(train['node1'])
+n2 = set(train['node2'])
+r = set(train['relation'])
+
+nodes = n1.union(n2)
+num_nodes = len(nodes)
+# num_relations = len(r)
+rel_dict = {i: val for val, i in enumerate(sorted(r, reverse=True))}
+nodes_dict = {i: val for val, i in enumerate(sorted(nodes, reverse=True))}
+inv_nodes_dict = {v: k for k, v in nodes_dict.items()}
+
+# Recreate the original dataset with the integer values for nodes and relations
+train = remap(train)
+val = remap(val)
+test = remap(test)
+
+
+# create a dictionary to link mono side effects to their names
+mono_sename_dict = {}
+for (se, se_name) in zip(mono['Individual Side Effect'], mono['Side Effect Name']):
+        mono_sename_dict[se] = se_name
+num_features = len(mono_sename_dict)
+
+# create a dictionary to link drugs to their mono se
+drug_se_dict = defaultdict(set)
+for (drug, se) in zip(mono['STITCH'], mono['Individual Side Effect']):
+        drug_se_dict[drug].add(se)
+
+# a list of all mono side effects
+side_effects = sorted(list((mono_sename_dict.keys())))
+
+# create a dict of nparrays holding the feature vectors for every drug (which has mono se)
+drug_features = {}
+for drug in drug_se_dict:
+        vector = np.zeros(len(side_effects))
+        mono_se_found_indexes = [side_effects.index(mono_se) for mono_se in drug_se_dict[drug]]
+        vector[mono_se_found_indexes] = 1
+        drug_features[drug] = vector
+
+# A dictionary that for every node holds its feature vector. (Based on mono se if applicable or else, random)
+features = {}
+for node in nodes:
+        if node in drug_se_dict:
+                features[node] = drug_features[node]
+        else:
+                features[node] = np.random.randint(2, size=num_features)

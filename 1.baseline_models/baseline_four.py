@@ -20,6 +20,10 @@ stitch2protein = load_targets()
 # dict that maps mono se to int
 mono_se_dict = {val: i for i, val in enumerate(sorted(se2name_mono.keys(), reverse=False))}
 
+drugs = list(drugs)
+drugs.sort()
+drugs_dict = {val: i for i, val in enumerate(drugs)}
+
 # create dict that maps all proteins (that at least one drug targets to) to int
 targets = list()
 for val in stitch2protein.values():
@@ -32,30 +36,23 @@ target_dict = {val: i for i, val in enumerate(sorted(targets, reverse=False))}
 # unique drugs dataset
 pca = PCA(n_components=500)
 mlb = MultiLabelBinarizer()
-drugs = list(drugs)
 matr = list()
-matr_pca = dict()
 for drug in drugs:
     matr.append(stitch2se[drug])
 matr = mlb.fit_transform(matr)
-matr = pca.fit_transform(matr)
+pca.fit(matr)
 sum(pca.explained_variance_ratio_)
-for idx, drug in enumerate(drugs):
-    matr_pca[drug] = matr[idx]
 
 
 # unique targets dataset
 pca_prot = PCA(n_components=50)
 mlb_prot = MultiLabelBinarizer()
 matr_prot = list()
-matr_prot_pca = dict()
 for drug in drugs:
     matr_prot.append(stitch2protein[drug])
 matr_prot = mlb_prot.fit_transform(matr_prot)
-pca_prot.fit_transform(matr_prot)
+pca_prot.fit(matr_prot)
 sum(pca_prot.explained_variance_ratio_)
-for idx, drug in enumerate(drugs):
-    matr_prot_pca[drug] = matr_prot[idx]
 
 
 # create lists with pairs and poly se of each pair ---------------------
@@ -65,27 +62,17 @@ for combo in sorted(combo2se.keys()):
     labels.append(list(combo2se[combo]))
     pairs.append(list(combo2stitch[combo]))
 
-# feature vector ---------------------
-se_vec = list()
-protein_vec = list()
-
-for pair in pairs:
-    se_vec.append([matr_pca.get(item, {}) for item in pair])
-    protein_vec.append([matr_prot_pca.get(item, {}) for item in pair])
-
 # create mono se features -------------------------
 x = list()
 for pair in pairs:
     x.append([stitch2se.get(item, item) for item in pair])
 
 # create separately the feature vectors of the two drugs
-# and then instead of concatenate we add them
 
 left = [list(x[i][0]) for i in range(len(x))]
 right = [list(x[i][1]) for i in range(len(x))]
 del x
 
-# mlb = MultiLabelBinarizer()
 l = list()
 for lef in left:
     l.append([str(mono_se_dict.get(item, item)) for item in lef])
@@ -129,7 +116,6 @@ left_prot = [list(x_prot[i][0]) for i in range(len(x_prot))]
 right_prot = [list(x_prot[i][1]) for i in range(len(x_prot))]
 del x_prot
 
-# mlb_prot = MultiLabelBinarizer()
 l_prot = list()
 for lef in left_prot:
     l_prot.append([str(target_dict.get(item, item)) for item in lef])

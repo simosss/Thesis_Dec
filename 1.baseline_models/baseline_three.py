@@ -76,7 +76,7 @@ del rr
 
 
 # PCA ------------------------------------------------
-svd = TruncatedSVD(n_components=100, random_state=42)
+svd = TruncatedSVD(n_components=300, random_state=42)
 lsa_ll = svd.fit_transform(ll_sparse)
 lsa_rr = svd.transform(rr_sparse)
 print(svd.explained_variance_ratio_.sum())
@@ -140,7 +140,7 @@ boost = HistGradientBoostingClassifier()
 bayes = GaussianNB()
 lr = LogisticRegression(max_iter=1000)
 
-f1, auroc, auprc, freq = training_with_split(boost, x, y[:, :1])
+f1, auroc, auprc, freq = training_with_split(boost, x, y[:, :10])
 
 
 # training -----------------------------------------------
