@@ -22,7 +22,7 @@ freq_names.to_csv('results/frequent_mono_se.csv')
 # ~5000 se appear in 5 or less drugs
 # ~300 in more than 100 ~30 in more than 200
 
-plt.hist(freq.se, bins=60, color='r')
+plt.hist(freq.appearances, bins=60, color='r')
 plt.xlabel('number of appearances')
 plt.ylabel('number of side effects')
 plt.xlim(0, 150)
@@ -72,6 +72,22 @@ for name, dataset in datasets.items():
     with open(f'results/feature_vectors_{name}.json', 'w') as f:
         json.dump(drug_features, f, indent=2)
 
+    foo = pd.DataFrame(drug_features)
+    cols = foo.columns
+    # inverse document frequency
+    foo.loc[:, 'total'] = foo.sum(axis=1)
+    foo.loc[:, 'percent'] = foo.shape[1] / foo['total']
+    foo.loc[:, 'idf'] = np.log10(foo['percent'])
+    # term frequency
+    foo[cols] = foo[cols] / foo[cols].sum()
+    # tf * idf
+    foo[cols] = foo[cols].multiply(foo['idf'], axis=0).round(decimals=5)
+    foo = foo[cols]
 
-# TODO tf idf
+    # back to same json format
+    boo = foo.to_dict('list')
+    with open(f'results/tfidf_vectors_{name}.json', 'w') as f:
+        json.dump(boo, f, indent=2)
+
+
 
