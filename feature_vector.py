@@ -43,11 +43,14 @@ plt.show()
 mono_rem_rare = mono[mono['appearances'] > 5]
 mono_rem_rare_over200 = mono_rem_rare[mono_rem_rare['appearances'] < 200]
 mono_rem_rare_over100 = mono_rem_rare[mono_rem_rare['appearances'] < 100]
+mono_mini = mono_rem_rare[mono_rem_rare['appearances'] > 250]
 
 datasets = {'mono': mono,
             'mono_rem_rare': mono_rem_rare,
             'mono_rem_rare_over200': mono_rem_rare_over200,
-            'mono_rem_rare_over100':mono_rem_rare_over100}
+            'mono_rem_rare_over100': mono_rem_rare_over100,
+            'mono_mini': mono_mini}
+
 for name, dataset in datasets.items():
     # create a dictionary to link drugs to their mono se
     drug_se_dict = defaultdict(set)
