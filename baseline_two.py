@@ -1,5 +1,6 @@
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
 from scipy import sparse
 from sklearn.decomposition import TruncatedSVD
 import pandas as pd
@@ -11,7 +12,8 @@ import numpy as np
 combo2stitch, combo2se, se2name, drugs = load_combo_se()
 stitch2se, se2name_mono = load_mono_se()
 
-mono_se_dict = {val: i for i, val in enumerate(sorted(se2name_mono.keys(), reverse=False))}
+mono_se_dict = {
+    val: i for i, val in enumerate(sorted(se2name_mono.keys(), reverse=False))}
 
 # create lists with pairs and se of each pair ---------------------
 labels = list()
@@ -70,24 +72,15 @@ print(svd.explained_variance_ratio_.sum())
 
 x = np.concatenate((lsa_ll, lsa_rr), axis=1)
 
-# x_sparse = sparse.csr_matrix(x)
-
-# del x
-
-# PCA ------------------------------------------------
-#svd = TruncatedSVD(n_components=500, random_state=42)
-#lsa_x = svd.fit_transform(x_sparse)
-#print(svd.explained_variance_ratio_.sum())
-
-# pca = PCA(n_components=0.99)
-# x_pca = pca.fit_transform(x)
-
 lr = LogisticRegression(random_state=1)
+# this is much better than when I tried with less
+# subsample or less estimators but it is extremelly slow
+gradient_boosting = GradientBoostingClassifier(
+    random_state=1, n_estimators=100, subsample=0.5, max_features='auto')
 
 # training -----------------------------------------------
-f1, auroc, auprc, ap50, freq = training_with_split(lr, x, y[:, :1])
+f1, auroc, auprc, ap50, freq = training_with_split(gradient_boosting, x, y[:, :10])
 
-mean_auprc = sum(auprc) / len(auprc)
-mean_freq = sum(freq) / len(freq)
-df = pd.DataFrame({'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'ap50': ap50, 'freq': freq})
-df.to_csv('results/baseline_two/logistic_try.csv')
+df = pd.DataFrame(
+    {'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'ap50': ap50, 'freq': freq})
+df.to_csv('results/baseline_two/gbtree_try3.csv')
