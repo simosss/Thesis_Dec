@@ -8,8 +8,8 @@ from sklearn.model_selection import learning_curve
 
 
 def ap50(prob, y_true):
-    prob = prob.to_list()
-    y_true = y_true.to_list()
+    prob = prob.tolist()
+    y_true = y_true.tolist()
     tup = list(zip(prob, y_true))
     # sorts by the biggest probability first
     res = sorted(tup, key=lambda x: x[0], reverse=True)
@@ -109,6 +109,7 @@ def training_with_split(model, x, y):
     f1_scores = list()
     auroc_scores = list()
     auprc_scores = list()
+    ap50_scores = list()
     frequency = list()
 
     for i in range(y.shape[1]):
@@ -124,12 +125,14 @@ def training_with_split(model, x, y):
         auroc_s = roc_auc_score(y_te[:, i], y_prob)
         precision, recall, thresholds = precision_recall_curve(y_te[:, i], y_prob)
         auprc_s = auc(recall, precision)
+        ap50_s = ap50(y_prob, y_te[:, i])
         f1_scores.append(f1_s)
         auroc_scores.append(auroc_s)
         auprc_scores.append(auprc_s)
+        ap50_scores.append(ap50_s)
         frequency.append(y_te[:, i].sum() / len(y_te))
 
-    return f1_scores, auroc_scores, auprc_scores, frequency
+    return f1_scores, auroc_scores, auprc_scores, ap50_scores, frequency
 
 
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
