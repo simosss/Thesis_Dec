@@ -3,7 +3,7 @@ from pykeen.evaluation import RankBasedEvaluator
 from pykeen.pipeline import pipeline
 import json
 
-n_tokeep = 300
+n_tokeep = 964
 minimum = 500
 
 tf = TriplesFactory.from_path(f'data/rare/rare_{minimum}_{n_tokeep}.csv')
