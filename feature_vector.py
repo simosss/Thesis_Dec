@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from collections import defaultdict
 import numpy as np
 import json
+from sklearn.decomposition import PCA
 
 mono = pd.read_csv('data/bio-decagon-mono.csv', header=0, names=['drug', 'se', 'se_name'])
 
@@ -74,6 +75,14 @@ for name, dataset in datasets.items():
     # drug features need to be list for that
     with open(f'results/feature_vectors_{name}.json', 'w') as f:
         json.dump(drug_features, f, indent=2)
+
+
+    # PCA
+    pca = PCA(n_components=100)
+    drug_features_pca = pca.fit_transform(drug_features)
+    print(drug_features_pca.explained_variance_ratio_)
+
+
 
     foo = pd.DataFrame(drug_features)
     cols = foo.columns

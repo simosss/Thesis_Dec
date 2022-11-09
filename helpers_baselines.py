@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import learning_curve
+from sklearn.preprocessing import MultiLabelBinarizer
 
 
 def ap50(prob, y_true):
@@ -86,6 +87,8 @@ def training(model, x_tr, x_te, yy, yy_test):
     f1_scores = list()
     auroc_scores = list()
     auprc_scores = list()
+    ap50_scores = list()
+    frequency = list()
 
     for i in range(yy.shape[1]):
         print(i)
@@ -98,11 +101,15 @@ def training(model, x_tr, x_te, yy, yy_test):
         auroc_s = roc_auc_score(yy_test[:, i], y_prob)
         precision, recall, thresholds = precision_recall_curve(yy_test[:, i], y_prob)
         auprc_s = auc(recall, precision)
+        ap50_s = ap50(y_prob, yy_test[:, i])
+
         f1_scores.append(f1_s)
         auroc_scores.append(auroc_s)
         auprc_scores.append(auprc_s)
+        ap50_scores.append(ap50_s)
+        frequency.append(yy_test[:, i].sum() / len(yy_test[:, i]))
 
-    return f1_scores, auroc_scores, auprc_scores
+    return f1_scores, auroc_scores, auprc_scores, frequency
 
 
 def training_with_split(model, x, y):
@@ -116,21 +123,79 @@ def training_with_split(model, x, y):
         print(i)
         # split into train and test
         x_tr, x_te, y_tr, y_te = train_test_split(x, y, test_size=0.2, random_state=42, stratify=y[:, i])
-        model.fit(x_tr, y_tr[:, i])
-        y_pred = model.predict(x_te)
-        y_prob = model.predict_proba(x_te)
+
+        # here there should be a condition that would only keep one negative sample for
+        # each triplet and not feed the model with all the unknown triplets as false
+        pos_ind = y_tr[:, i].nonzero()
+        pos_ind = pos_ind[0]
+        rand_neg_ind = pos_ind + 1
+        tr_index = np.concatenate((pos_ind, rand_neg_ind))
+        tr_index = tr_index[:-1]
+
+        pos_ind_t = y_te[:, i].nonzero()
+        pos_ind_t = pos_ind_t[0]
+        rand_neg_ind_t = pos_ind_t + 1
+        te_index = np.concatenate((pos_ind_t, rand_neg_ind_t))
+        te_index = te_index[:-1]
+
+        model.fit(x_tr[tr_index, :], y_tr[tr_index, i])
+        y_pred = model.predict(x_te[te_index, :])
+        y_prob = model.predict_proba(x_te[te_index, :])
         # keep probability for the positive class only
         y_prob = y_prob[:, 1]
-        f1_s = f1_score(y_te[:, i], y_pred)
-        auroc_s = roc_auc_score(y_te[:, i], y_prob)
-        precision, recall, thresholds = precision_recall_curve(y_te[:, i], y_prob)
+        f1_s = f1_score(y_te[te_index, i], y_pred)
+        auroc_s = roc_auc_score(y_te[te_index, i], y_prob)
+        precision, recall, thresholds = precision_recall_curve(y_te[te_index, i], y_prob)
         auprc_s = auc(recall, precision)
-        ap50_s = ap50(y_prob, y_te[:, i])
+        ap50_s = ap50(y_prob, y_te[te_index, i])
         f1_scores.append(f1_s)
         auroc_scores.append(auroc_s)
         auprc_scores.append(auprc_s)
         ap50_scores.append(ap50_s)
-        frequency.append(y_te[:, i].sum() / len(y_te))
+        frequency.append(y_te[te_index, i].sum() / len(y_te[te_index, i]))
+
+    return f1_scores, auroc_scores, auprc_scores, ap50_scores, frequency
+
+
+def training_with_split_new(model, data):
+    f1_scores = list()
+    auroc_scores = list()
+    auprc_scores = list()
+    ap50_scores = list()
+    frequency = list()
+
+    relations = set(data['se'])
+
+    for i, rel in enumerate(relations):
+        print(i)
+        full = data[data['se'] == rel]
+        y = full['label']
+        x = full[['node1', 'node2']].to_numpy().tolist()
+
+        # one hot encode dataset and targets
+        #y = MultiLabelBinarizer().fit_transform(labels)
+        x = MultiLabelBinarizer().fit_transform(x)
+
+        # split into train and test
+        x_tr, x_te, y_tr, y_te = train_test_split(
+            x, y, test_size=0.2, random_state=42, stratify=y)
+
+
+        model.fit(x_tr, y_tr)
+        y_pred = model.predict(x_te)
+        y_prob = model.predict_proba(x_te)
+        # keep probability for the positive class only
+        y_prob = y_prob[:, 1]
+        f1_s = f1_score(y_te, y_pred)
+        auroc_s = roc_auc_score(y_te, y_prob)
+        precision, recall, thresholds = precision_recall_curve(y_te, y_prob)
+        auprc_s = auc(recall, precision)
+        ap50_s = ap50(y_prob, y_te)
+        f1_scores.append(f1_s)
+        auroc_scores.append(auroc_s)
+        auprc_scores.append(auprc_s)
+        ap50_scores.append(ap50_s)
+        frequency.append(y_te.sum() / len(y_te))
 
     return f1_scores, auroc_scores, auprc_scores, ap50_scores, frequency
 

@@ -7,8 +7,8 @@ import pandas as pd
 n_tokeep = 300
 minimum = 500
 
-tf = TriplesFactory.from_path(f'data/rare/rare_{minimum}_{n_tokeep}.csv')
-training, testing, validation = tf.split([.8, .1, .1])
+tf = TriplesFactory.from_path(f'data/rare/rare_{minimum}_{n_tokeep}.csv', create_inverse_triples=True)
+training, testing, validation = tf.split([.8, .1, .1], random_state=123)
 
 
 relations = pd.read_csv('per_se_transe_rare.csv')
@@ -27,33 +27,36 @@ per_se_50 = dict()
 
 
 for idx, rel in enumerate(relations):
-    if idx < 3:
-        evaluation_relation_whitelist = {rel}
+    print(idx)
 
-        result_pipeline = pipeline(
-            training=training,
-            testing=testing,
-            validation=validation,
-            model='RotatE',
-            evaluation_relation_whitelist=evaluation_relation_whitelist,
-            model_kwargs=dict(embedding_dim=500),
-            training_kwargs=dict(checkpoint_name='rotate_checkpoin_rare.pt',
-                                 checkpoint_frequency=5,
-                                 num_epochs=60  # ,
-                                 # batch_size=128
-                                 ),
-            evaluator=RankBasedEvaluator,
-            evaluator_kwargs=dict(ks=[10, 50], batch_size=256)  # ,
-            # stopper='early',
-            # stopper_kwargs=dict(
-            #    metric='hits_at_k',
-            #    frequency=10, patience=3, relative_delta=0.002)
-        )
-        per_se_10[rel] = result_pipeline.metric_results.hits_at_k['both']['realistic'][10]
-        per_se_50[rel] = result_pipeline.metric_results.hits_at_k['both']['realistic'][50]
+    evaluation_relation_whitelist = {rel}
+
+    result_pipeline = pipeline(
+        random_seed=123,
+        training=training,
+        testing=testing,
+        validation=validation,
+        model='RotatE',
+        # evaluation_relation_whitelist=evaluation_relation_whitelist,
+        model_kwargs=dict(embedding_dim=500),
+        training_kwargs=dict(checkpoint_name='rotate_with_inv',
+                             checkpoint_frequency=5,
+                             num_epochs=60  # ,
+                             # batch_size=128
+                             ),
+        evaluator=RankBasedEvaluator,
+        evaluator_kwargs=dict(ks=[1, 3, 10, 50], batch_size=256)  # ,
+        # stopper='early',
+        # stopper_kwargs=dict(
+        #    metric='hits_at_k',
+        #    frequency=10, patience=3, relative_delta=0.002)
+    )
+    per_se_10[rel] = result_pipeline.metric_results.hits_at_k['both']['realistic'][10]
+    per_se_50[rel] = result_pipeline.metric_results.hits_at_k['both']['realistic'][50]
 
 #with open("per_se_50.json", "w") as outfile:
 #    json.dump(per_se_50, outfile)
+
 import csv
 metrics = [per_se_10, per_se_50]
 with open('per_se_rotate.csv', 'w') as csvfile:

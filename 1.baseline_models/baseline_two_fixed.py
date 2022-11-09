@@ -161,13 +161,8 @@ for i, drug in enumerate(drugs):
 
 # CREATE DATASET
 # samples and negative samples of the full dataset created on r script
-neg = pd.read_csv('data/negative_samples.csv')
-pos = pd.read_csv('data/positive_samples.csv')
-# poly se with more than 500 appearances
-pop_se = pd.read_csv('se.csv')
-pop_se = set(pop_se['se'])
-pos = pos[pos['se'].isin(pop_se)]
-neg = neg[neg['se'].isin(pop_se)]
+neg = pd.read_csv('negative_samples_uniform.csv')
+pos = pd.read_csv('positive_samples_uniform.csv')
 # drugs with no mono se
 pos = pos[pos['node1'].isin(drugs)]
 neg = neg[neg['node1'].isin(drugs)]
@@ -197,4 +192,4 @@ mean_auroc = sum(auroc) / len(auroc)
 mean_ap50 = sum(ap50) / len(ap50)
 mean_freq = sum(freq) / len(freq)
 df = pd.DataFrame({'auprc': auprc, 'auroc': auroc, 'f1_score': f1, 'ap50': ap50, 'freq': freq})
-df.to_csv('results/baseline_two/logistic_neg_sampling_v2.csv')
+df.to_csv('results/baseline_two/logistic_neg_sampling_v2_uniform.csv')

@@ -147,11 +147,11 @@ hist = HistGradientBoostingClassifier()
 bayes = GaussianNB()
 lr = LogisticRegression(max_iter=1000)
 
-f1, auroc, auprc, ap50, freq = training_with_split(hist, x, y)
+f1, auroc, auprc, ap50, freq = training_with_split(lr, x, y)
 
 
 # training -----------------------------------------------
 
 df = pd.DataFrame(
     {'auprc': auprc, 'auroc': auroc, 'ap50': ap50, 'f1_score': f1, 'freq': freq})
-df.to_csv('results/baseline_three_protein/hist.csv')
+df.to_csv('results/baseline_three_protein/lr.csv')

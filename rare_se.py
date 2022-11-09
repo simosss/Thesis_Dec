@@ -3,7 +3,7 @@ import logging
 
 logging.getLogger().setLevel(logging.INFO)
 
-n_tokeep = [50, 100, 150, 200, 250, 300]
+n_tokeep = [964]
 min_freq = [500]
 
 # create the dataset in the form pykeen wants it

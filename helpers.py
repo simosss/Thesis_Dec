@@ -37,7 +37,8 @@ def load_combo_se(fname='data/bio-decagon-combo.csv', limited=False):
     # poly side effects with more than 500 occurences
     se_500 = pd.read_csv('se.csv')
     pro_drugs = pd.read_csv('pro_drugs.csv')
-    se_500 = se_500['# poly_side_effects'].to_list()
+    pro_drugs = pro_drugs['STITCH'].tolist()
+    se_500 = se_500['se'].to_list()
     fin = open(fname)
     print('Reading: %s' % fname)
     fin.readline()

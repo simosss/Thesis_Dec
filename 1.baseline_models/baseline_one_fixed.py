@@ -5,48 +5,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, roc_auc_score, precision_recall_curve, auc
 
 
-def training_with_split_one(model, data):
-    f1_scores = list()
-    auroc_scores = list()
-    auprc_scores = list()
-    ap50_scores = list()
-    frequency = list()
-
-    relations = set(data['se'])
-
-    for i, rel in enumerate(relations):
-        print(i)
-        se_data = data[data['se'] == rel]
-        y = se_data['label']
-        x = se_data[['node1', 'node2']].to_numpy().tolist()
-
-        # one hot encode dataset
-        x = MultiLabelBinarizer().fit_transform(x)
-
-        # split into train and test
-        x_tr, x_te, y_tr, y_te = train_test_split(
-            x, y, test_size=0.2, random_state=42, stratify=y)
-
-
-        model.fit(x_tr, y_tr)
-        y_pred = model.predict(x_te)
-        y_prob = model.predict_proba(x_te)
-        # keep probability for the positive class only
-        y_prob = y_prob[:, 1]
-        f1_s = f1_score(y_te, y_pred)
-        auroc_s = roc_auc_score(y_te, y_prob)
-        precision, recall, thresholds = precision_recall_curve(y_te, y_prob)
-        auprc_s = auc(recall, precision)
-        ap50_s = ap50(y_prob, y_te)
-        f1_scores.append(f1_s)
-        auroc_scores.append(auroc_s)
-        auprc_scores.append(auprc_s)
-        ap50_scores.append(ap50_s)
-        frequency.append(y_te.sum() / len(y_te))
-
-    return f1_scores, auroc_scores, auprc_scores, ap50_scores, frequency
-
-
 def ap50(prob, y_true):
     prob = prob.tolist()
     y_true = y_true.tolist()
@@ -70,15 +28,8 @@ def ap50(prob, y_true):
 
 
 # samples and negative samples of the full dataset created on r script
-neg = pd.read_csv('data/negative_samples.csv')
-pos = pd.read_csv('data/positive_samples.csv')
-
-# poly se with more than 500 appearances
-pop_se = pd.read_csv('se.csv')
-pop_se = set(pop_se['se'])
-
-pos = pos[pos['se'].isin(pop_se)]
-neg = neg[neg['se'].isin(pop_se)]
+neg = pd.read_csv('negative_samples_uniform.csv')
+pos = pd.read_csv('positive_samples_uniform.csv')
 
 # assign labels and concatenate
 neg['label'] = 0
@@ -86,13 +37,51 @@ pos['label'] = 1
 full = pd.concat([pos, neg])
 
 # training and evaluate
-lr = LogisticRegression()
-f1, auroc, auprc, ap50_sc, freq = training_with_split_new(lr, full)
+model = LogisticRegression(random_state=1)
 
-mean_auprc = sum(auprc) / len(auprc)
-mean_auroc = sum(auroc) / len(auroc)
-mean_ap50 = sum(ap50_sc) / len(ap50_sc)
-mean_freq = sum(freq) / len(freq)
+f1_scores = list()
+auroc_scores = list()
+auprc_scores = list()
+ap50_scores = list()
+frequency = list()
+
+relations = list(set(full['se']))
+
+for i, rel in enumerate(relations):
+    print(i)
+    se_data = full[full['se'] == rel]
+    y = se_data['label']
+    x = se_data[['node1', 'node2']].to_numpy().tolist()
+
+    # one hot encode dataset
+    x = MultiLabelBinarizer().fit_transform(x)
+
+    # split into train and test
+    x_tr, x_te, y_tr, y_te = train_test_split(
+        x, y, test_size=0.2, random_state=42, stratify=y)
+
+    model.fit(x_tr, y_tr)
+    y_pred = model.predict(x_te)
+    y_prob = model.predict_proba(x_te)
+    # keep probability for the positive class only
+    y_prob = y_prob[:, 1]
+    f1_s = f1_score(y_te, y_pred)
+    auroc_s = roc_auc_score(y_te, y_prob)
+    precision, recall, thresholds = precision_recall_curve(y_te, y_prob)
+    auprc_s = auc(recall, precision)
+    ap50_s = ap50(y_prob, y_te)
+    f1_scores.append(f1_s)
+    auroc_scores.append(auroc_s)
+    auprc_scores.append(auprc_s)
+    ap50_scores.append(ap50_s)
+    frequency.append(y_te.sum() / len(y_te))
+
+
+mean_auprc = sum(auprc_scores) / len(auprc_scores)
+mean_auroc = sum(auroc_scores) / len(auroc_scores)
+mean_ap50 = sum(ap50_scores) / len(ap50_scores)
+mean_freq = sum(frequency) / len(frequency)
 df = pd.DataFrame(
-    {'auprc': auprc, 'auroc': auroc, 'ap50': ap50_sc, 'f1_score': f1, 'freq': freq})
-df.to_csv('results/baseline_one/logistic_neg_sampling.csv')
+    {'auprc': auprc_scores, 'auroc': auroc_scores, 'ap50': ap50_scores,
+     'f1_score': f1_scores, 'freq': frequency})
+df.to_csv('results/baseline_one/logistic_neg_sampling_uniform.csv')

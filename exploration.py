@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 from difflib import SequenceMatcher
+from matplotlib.ticker import PercentFormatter
 # import Levenshtein
 
 # Levenshtein.ratio('hello world', 'hello')
@@ -68,6 +69,16 @@ plt.xlabel('appearances')
 plt.ylabel('number of side effects')
 plt.show()
 
+foo2 = foo[foo < 1600]
+plt.hist(foo2, weights=np.ones(len(foo2)) / len(foo2), bins=20, color='red')
+plt.xlabel('Number of appearances')
+plt.ylabel('Percent of side-effects')
+plt.grid(axis='y', alpha=0.3)
+# plt.xlim(-100, 10000targets
+plt.xticks(np.arange(500, 2000, step=250))
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.show()
+
 
 foo[foo < 10000].sum()
 # 2.706.315 edges
@@ -90,10 +101,16 @@ all_d = remap(combo)
 
 pairs = all_d[['node1', 'node2']]
 pairs['comb'] = pairs['node1'].astype(str) + '_' + pairs['node2'].astype(str)
+num_pairs = len(pairs['comb'].unique())
 pair_freq = pairs['comb'].value_counts()
-plt.hist(pair_freq, 100, color='red')
-plt.xlabel('Number of pairs')
-plt.ylabel('Polypharmacy side effects')
+
+foo = pair_freq / num_pairs
+plt.hist(pair_freq, weights=np.ones(len(pair_freq)) / len(pair_freq), bins=40, color='red')
+plt.xlabel('Number of polypharmacy side-effects')
+plt.ylabel('Percent of drug pairs')
+plt.xlim(-20, 350)
+plt.grid(axis='y', alpha=0.3)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
 plt.show()
 unique_pairs = pairs.drop_duplicates()
 nod = set(pairs['node1']).union(set(pairs['node2']))
@@ -103,6 +120,8 @@ nod = set(pairs['node1']).union(set(pairs['node2']))
 
 mono_se = mono['se'].unique()
 # 10.184
+#drugs with most known side effects
+mono_drug = mono['drug'].value_counts()
 fre = mono['se'].value_counts()
 bre = mono['se_name'].value_counts()
 len(fre[fre > 50])

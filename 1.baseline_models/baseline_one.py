@@ -1,7 +1,7 @@
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.linear_model import LogisticRegression
 import pandas as pd
-from helpers import load_combo_se, training_with_split
+from helpers_baselines import load_combo_se, training_with_split
 
 
 # load polypharmacy dataset
@@ -26,7 +26,7 @@ for pair in pairs:
 y = MultiLabelBinarizer().fit_transform(labels)
 x = MultiLabelBinarizer().fit_transform(x)
 
-# y_mini = y[:, :10]
+y_mini = y[:, :10]
 
 # training and evaluate
 bayes = LogisticRegression()
@@ -36,4 +36,4 @@ mean_auprc = sum(auprc) / len(auprc)
 mean_freq = sum(freq) / len(freq)
 df = pd.DataFrame(
     {'auprc': auprc, 'auroc': auroc, 'ap50': ap50, 'f1_score': f1, 'freq': freq})
-df.to_csv('results/baseline_one/logistic.csv')
+df.to_csv('results/baseline_one/logistic_balanced_train.csv')
